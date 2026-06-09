@@ -1,1364 +1,680 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FurniSketch Pro - أداة تصميم الأثاث بالذكاء الاصطناعي</title>
+    <title>FurniSketch Pro 3D</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         * { font-family: 'Cairo', sans-serif; }
-        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; }
+        body { background: #0a0a0a; color: white; overflow: hidden; margin: 0; }
         .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
-        .glass-card { background: rgba(255,255,255,0.08); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; transition: all 0.3s ease; }
-        .glass-card:hover { background: rgba(255,255,255,0.12); transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        .gradient-text { background: linear-gradient(135deg, #e94560, #ff6b6b, #feca57); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .btn-primary { background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; color: white; padding: 12px 30px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
-        .btn-primary:hover { transform: scale(1.05); box-shadow: 0 10px 30px rgba(233,69,96,0.4); }
-        .btn-secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px 25px; border-radius: 10px; cursor: pointer; transition: all 0.3s; }
-        .btn-secondary:hover { background: rgba(255,255,255,0.2); }
-        .input-field { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px 16px; border-radius: 12px; width: 100%; outline: none; transition: all 0.3s; }
-        .input-field:focus { border-color: #e94560; box-shadow: 0 0 20px rgba(233,69,96,0.2); }
-        .input-field::placeholder { color: rgba(255,255,255,0.4); }
-        .material-btn { width: 50px; height: 50px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: all 0.3s; position: relative; }
-        .material-btn:hover { transform: scale(1.1); }
-        .material-btn.active { border-color: #e94560; box-shadow: 0 0 15px rgba(233,69,96,0.5); }
-        .material-btn .tooltip { position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 4px 10px; border-radius: 6px; font-size: 12px; white-space: nowrap; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-        .material-btn:hover .tooltip { opacity: 1; }
-        .color-btn { width: 40px; height: 40px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: all 0.3s; }
-        .color-btn.active { border-color: white; box-shadow: 0 0 15px rgba(255,255,255,0.5); transform: scale(1.2); }
-        .finish-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; cursor: pointer; transition: all 0.3s; font-size: 14px; }
-        .finish-btn.active { background: linear-gradient(135deg, #e94560, #ff6b6b); border-color: transparent; }
-        .tab-btn { padding: 10px 20px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.3s; font-weight: 600; }
-        .tab-btn.active { background: linear-gradient(135deg, #e94560, #ff6b6b); color: white; }
-        .loading-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #e94560; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .preview-container { background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); min-height: 400px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-        .preview-container::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(233,69,96,0.1) 0%, transparent 70%); animation: pulse 4s ease-in-out infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.8; } }
-        .dimension-input { width: 80px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px; border-radius: 8px; text-align: center; }
-        .sketch-upload { border: 2px dashed rgba(255,255,255,0.3); border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .sketch-upload:hover { border-color: #e94560; background: rgba(233,69,96,0.05); }
-        .sketch-upload.dragover { border-color: #e94560; background: rgba(233,69,96,0.1); }
-        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.9); color: white; padding: 15px 30px; border-radius: 12px; font-weight: 600; z-index: 1000; transition: all 0.5s ease; border: 1px solid rgba(233,69,96,0.5); }
+        .glass-card { background: rgba(255,255,255,0.08); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+        .gradient-text { background: linear-gradient(135deg, #e94560, #ff6b6b, #feca57); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-primary { background: linear-gradient(135deg, #e94560, #ff6b6b); border: none; color: white; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+        .btn-primary:hover { transform: scale(1.05); }
+        .btn-secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+        .input-field { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 10px; width: 100%; outline: none; }
+        .material-btn { width: 50px; height: 50px; border-radius: 10px; border: 3px solid transparent; cursor: pointer; position: relative; }
+        .material-btn.active { border-color: #e94560; }
+        .color-btn { width: 35px; height: 35px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; }
+        .color-btn.active { border-color: white; transform: scale(1.2); }
+        .room-btn { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; font-weight: 600; }
+        .room-btn.active { background: linear-gradient(135deg, #e94560, #ff6b6b); color: white; }
+        .furniture-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .furniture-item:hover { background: rgba(255,255,255,0.1); }
+        .furniture-item.active { border-color: #e94560; }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.9); color: white; padding: 15px 30px; border-radius: 12px; font-weight: 600; z-index: 1000; transition: all 0.5s; border: 1px solid #e94560; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 2000; display: none; align-items: center; justify-content: center; }
-        .modal-overlay.active { display: flex; }
-        .modal-content { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 24px; padding: 40px; max-width: 500px; width: 90%; border: 1px solid rgba(255,255,255,0.1); }
-        .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #e94560, #ff6b6b); border-radius: 2px; transition: width 0.3s ease; }
-        .feature-icon { width: 60px; height: 60px; border-radius: 16px; background: linear-gradient(135deg, rgba(233,69,96,0.2), rgba(255,107,107,0.2)); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 15px; }
-        .nav-link { color: rgba(255,255,255,0.6); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; font-weight: 600; }
-        .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.1); }
-        .hero-pattern { background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
-        .scroll-indicator { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); animation: bounce 2s infinite; }
-        @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); } 40% { transform: translateX(-50%) translateY(-10px); } 60% { transform: translateX(-50%) translateY(-5px); } }
-        .floating-shapes { position: absolute; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
-        .shape { position: absolute; opacity: 0.1; animation: float 20s infinite ease-in-out; }
-        @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-30px) rotate(180deg); } }
-        .ai-thinking { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 20px; }
-        .ai-thinking .dot { width: 10px; height: 10px; border-radius: 50%; background: #e94560; animation: thinking 1.4s infinite ease-in-out both; }
-        .ai-thinking .dot:nth-child(1) { animation-delay: -0.32s; }
-        .ai-thinking .dot:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes thinking { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-        .stats-card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
-        .stats-number { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #e94560, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .material-swatch { width: 100%; height: 100%; border-radius: 10px; position: relative; overflow: hidden; }
-        .wood-oak { background: linear-gradient(135deg, #8B6914, #A0522D, #8B4513); }
-        .wood-walnut { background: linear-gradient(135deg, #5C4033, #4A3728, #3D2B1F); }
-        .wood-mdf { background: linear-gradient(135deg, #F5DEB3, #DEB887, #D2B48C); }
-        .metal-steel { background: linear-gradient(135deg, #C0C0C0, #A9A9A9, #808080); }
-        .leather { background: linear-gradient(135deg, #8B4513, #A0522D, #CD853F); }
-        .velvet { background: linear-gradient(135deg, #800080, #4B0082, #663399); }
-        @media (max-width: 768px) { .comparison-grid { grid-template-columns: 1fr; } }
+        #canvas-container { width: 100%; height: 100vh; position: fixed; top: 0; left: 0; z-index: 0; }
+        .sidebar { width: 300px; height: 100vh; overflow-y: auto; background: rgba(10,10,10,0.9); position: fixed; top: 0; z-index: 10; padding: 16px; }
+        .sidebar-left { right: 0; border-left: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-right { left: 0; border-right: 1px solid rgba(255,255,255,0.1); }
+        .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .loading-spinner { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #e94560; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .dimension-slider { width: 100%; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); outline: none; -webkit-appearance: none; }
+        .dimension-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #e94560; cursor: pointer; }
     </style>
-<base target="_blank">
 </head>
-<body class="text-white">
-    <!-- Navigation -->
-    <nav class="fixed top-0 w-full z-50 glass" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-xl font-bold">F</div>
-                    <span class="text-xl font-bold gradient-text">FurniSketch Pro</span>
-                </div>
-                <div class="hidden md:flex items-center gap-2">
-                    <a href="#design" class="nav-link active">تصميم</a>
-                    <a href="#history" class="nav-link">المحفوظات</a>
-                    <a href="#about" class="nav-link">عن الأداة</a>
-                </div>
-                <button onclick="showSettings()" class="btn-secondary text-sm"><i class="fas fa-cog ml-2"></i>الإعدادات</button>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="loading-screen" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="mt-4 text-gray-400">جاري تحميل المصمم ثلاثي الأبعاد...</p>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar sidebar-right">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-xl font-bold">F</div>
+            <div>
+                <h1 class="text-lg font-bold gradient-text">FurniSketch</h1>
+                <p class="text-xs text-gray-500">Pro 3D</p>
             </div>
         </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <section class="relative min-h-screen flex items-center justify-center hero-pattern pt-16">
-        <div class="floating-shapes">
-            <div class="shape" style="top: 10%; left: 10%; font-size: 100px;">🪑</div>
-            <div class="shape" style="top: 20%; right: 15%; font-size: 80px; animation-delay: -5s;">🛋️</div>
-            <div class="shape" style="bottom: 20%; left: 20%; font-size: 90px; animation-delay: -10s;">🪴</div>
-            <div class="shape" style="bottom: 10%; right: 10%; font-size: 70px; animation-delay: -15s;">💡</div>
-        </div>
-        <div class="max-w-5xl mx-auto px-4 text-center relative z-10">
-            <div class="inline-block mb-6 px-6 py-2 rounded-full bg-gradient-to-r from-pink-500/20 to-orange-400/20 border border-pink-500/30 text-sm font-semibold">
-                ✨ مجاني 100% - بدون حدود
-            </div>
-            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 leading-tight">
-                حول <span class="gradient-text">أفكارك</span><br>لتصاميم أثاث <span class="gradient-text">واقعية</span>
-            </h1>
-            <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-                اكتب وصفاً أو ارسم باليد، والذكاء الاصطناعي يحولها لتصميم تفاعلي قابل للتعديل بالخامات والألوان والفينيش
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                <button onclick="scrollToDesign()" class="btn-primary text-lg px-8 py-4">
-                    <i class="fas fa-magic ml-2"></i>ابدأ التصميم الآن
-                </button>
-                <button onclick="showDemo()" class="btn-secondary text-lg px-8 py-4">
-                    <i class="fas fa-play ml-2"></i>شاهد العرض التوضيحي
-                </button>
-            </div>
-            <div class="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
-                <div class="stats-card">
-                    <div class="stats-number">∞</div>
-                    <div class="text-sm text-gray-400 mt-1">تصميم مجاني</div>
-                </div>
-                <div class="stats-card">
-                    <div class="stats-number">3D</div>
-                    <div class="text-sm text-gray-400 mt-1">معاينة فورية</div>
-                </div>
-                <div class="stats-card">
-                    <div class="stats-number">6+</div>
-                    <div class="text-sm text-gray-400 mt-1">خامات متنوعة</div>
-                </div>
-            </div>
-            <div class="scroll-indicator">
-                <i class="fas fa-chevron-down text-2xl text-gray-400"></i>
+        <div class="glass-card">
+            <h3 class="text-sm font-bold mb-3 text-gray-400">🏠 اختاري الغرفة</h3>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="setRoom('bedroom')" id="room-bedroom" class="room-btn active">🛏️ نوم</button>
+                <button onclick="setRoom('living')" id="room-living" class="room-btn">🛋️ معيشة</button>
+                <button onclick="setRoom('kitchen')" id="room-kitchen" class="room-btn">🍳 مطبخ</button>
+                <button onclick="setRoom('dining')" id="room-dining" class="room-btn">🍽️ سفرة</button>
+                <button onclick="setRoom('office')" id="room-office" class="room-btn">📚 مكتب</button>
+                <button onclick="setRoom('bathroom')" id="room-bathroom" class="room-btn">🚿 حمام</button>
             </div>
         </div>
-    </section>
 
-    <!-- Main Design Section -->
-    <section id="design" class="py-20 px-4">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold mb-4">لوحة التصميم</h2>
-                <p class="text-gray-400 text-lg">اختر طريقة التصميم المناسبة لك</p>
-            </div>
-
-            <!-- Input Tabs -->
-            <div class="flex justify-center gap-4 mb-10">
-                <button onclick="switchTab('text')" id="tab-text" class="tab-btn active">
-                    <i class="fas fa-keyboard ml-2"></i>وصف نصي
-                </button>
-                <button onclick="switchTab('sketch')" id="tab-sketch" class="tab-btn">
-                    <i class="fas fa-pencil-alt ml-2"></i>رسمة اليد
-                </button>
-                <button onclick="switchTab('manual')" id="tab-manual" class="tab-btn">
-                    <i class="fas fa-cube ml-2"></i>تصميم يدوي
-                </button>
-            </div>
-
-            <!-- Text Input Panel -->
-            <div id="panel-text" class="glass-card p-8 mb-10">
-                <div class="mb-6">
-                    <label class="block text-lg font-semibold mb-3">صف قطعة الأثاث اللي عايزها:</label>
-                    <textarea id="furniture-desc" class="input-field" rows="4" placeholder="مثال: كنبة زاوية حديثة، 3 مقاعد، مسند ظهر مرتفع، أرجل خشبية دائرية، مناسبة للصالون العصري..."></textarea>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                        <label class="block text-sm font-semibold mb-2 text-gray-400">نوع القطعة</label>
-                        <select id="furniture-type" class="input-field">
-                            <option value="sofa">كنبة / صالون</option>
-                            <option value="chair">كرسي</option>
-                            <option value="table">ترابيزة</option>
-                            <option value="bed">سرير</option>
-                            <option value="cabinet">دولاب / خزانة</option>
-                            <option value="shelf">رفوف</option>
-                            <option value="desk">مكتب</option>
-                            <option value="other">أخرى</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold mb-2 text-gray-400">النمط</label>
-                        <select id="furniture-style" class="input-field">
-                            <option value="modern">عصري / مودرن</option>
-                            <option value="classic">كلاسيك</option>
-                            <option value="minimalist">بسيط / مينيماليست</option>
-                            <option value="industrial">صناعي</option>
-                            <option value="scandinavian">إسكندنافي</option>
-                            <option value="bohemian">بوهيمي</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold mb-2 text-gray-400">الميزانية التقريبية</label>
-                        <select id="budget-range" class="input-field">
-                            <option value="economy">اقتصادية</option>
-                            <option value="mid">متوسطة</option>
-                            <option value="premium">فاخرة</option>
-                            <option value="luxury">لوكس / فاخرة جداً</option>
-                        </select>
-                    </div>
-                </div>
-                <button onclick="generateFromText()" class="btn-primary w-full text-lg py-4">
-                    <i class="fas fa-wand-magic-sparkles ml-2"></i>ولد التصميم بالذكاء الاصطناعي
-                </button>
-            </div>
-
-            <!-- Sketch Upload Panel -->
-            <div id="panel-sketch" class="glass-card p-8 mb-10 hidden">
-                <div class="mb-6">
-                    <label class="block text-lg font-semibold mb-3">ارفع رسمة اليد:</label>
-                    <div id="sketch-dropzone" class="sketch-upload" onclick="document.getElementById('sketch-input').click()">
-                        <input type="file" id="sketch-input" accept="image/*" class="hidden" onchange="handleSketchUpload(event)">
-                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
-                        <p class="text-lg mb-2">اسحب الصورة هنا أو اضغط للاختيار</p>
-                        <p class="text-sm text-gray-400">يدعم JPG, PNG, WEBP (الحد الأقصى 5MB)</p>
-                    </div>
-                </div>
-                <div id="sketch-preview" class="hidden mb-6">
-                    <div class="relative inline-block">
-                        <img id="sketch-img" class="rounded-2xl max-h-80 border border-white/20">
-                        <button onclick="clearSketch()" class="absolute top-2 right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-600 transition">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <button onclick="generateFromSketch()" id="sketch-btn" class="btn-primary w-full text-lg py-4" disabled>
-                    <i class="fas fa-wand-magic-sparkles ml-2"></i>حول الرسمة لتصميم احترافي
-                </button>
-            </div>
-
-            <!-- Manual Design Panel -->
-            <div id="panel-manual" class="glass-card p-8 mb-10 hidden">
-                <div class="text-center mb-8">
-                    <p class="text-gray-400 mb-4">اختار نوع القطعة الأساسية وعدل عليها</p>
-                    <div class="flex flex-wrap gap-4 justify-center">
-                        <button onclick="loadTemplate('sofa')" class="glass-card p-4 hover:scale-105 transition cursor-pointer">
-                            <div class="text-4xl mb-2">🛋️</div>
-                            <div class="font-semibold">كنبة</div>
-                        </button>
-                        <button onclick="loadTemplate('chair')" class="glass-card p-4 hover:scale-105 transition cursor-pointer">
-                            <div class="text-4xl mb-2">🪑</div>
-                            <div class="font-semibold">كرسي</div>
-                        </button>
-                        <button onclick="loadTemplate('table')" class="glass-card p-4 hover:scale-105 transition cursor-pointer">
-                            <div class="text-4xl mb-2">🪑</div>
-                            <div class="font-semibold">ترابيزة</div>
-                        </button>
-                        <button onclick="loadTemplate('bed')" class="glass-card p-4 hover:scale-105 transition cursor-pointer">
-                            <div class="text-4xl mb-2">🛏️</div>
-                            <div class="font-semibold">سرير</div>
-                        </button>
-                        <button onclick="loadTemplate('cabinet')" class="glass-card p-4 hover:scale-105 transition cursor-pointer">
-                            <div class="text-4xl mb-2">🗄️</div>
-                            <div class="font-semibold">دولاب</div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- AI Loading -->
-            <div id="ai-loading" class="hidden glass-card p-12 text-center mb-10">
-                <div class="ai-thinking mb-6">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-                <h3 class="text-2xl font-bold mb-2">الذكاء الاصطناعي يصمم لك...</h3>
-                <p class="text-gray-400 mb-6">بيانلّي على الخامات والألوان المناسبة</p>
-                <div class="max-w-md mx-auto">
-                    <div class="progress-bar mb-2">
-                        <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
-                    </div>
-                    <p id="progress-text" class="text-sm text-gray-400">جاري تحليل الوصف...</p>
-                </div>
-            </div>
-
-            <!-- Results Section -->
-            <div id="results-section" class="hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-                    <!-- Preview -->
-                    <div class="glass-card p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold">المعاينة</h3>
-                            <div class="flex gap-2">
-                                <button onclick="setView('2d')" id="view-2d" class="tab-btn active text-sm py-2 px-4">2D</button>
-                                <button onclick="setView('3d')" id="view-3d" class="tab-btn text-sm py-2 px-4">3D</button>
-                                <button onclick="setView('room')" id="view-room" class="tab-btn text-sm py-2 px-4">في الغرفة</button>
-                            </div>
-                        </div>
-                        <div id="preview-area" class="preview-container min-h-[400px]">
-                            <div id="svg-preview" class="w-full h-full flex items-center justify-center"></div>
-                        </div>
-                        <div class="flex justify-center gap-4 mt-4">
-                            <button onclick="rotateLeft()" class="btn-secondary"><i class="fas fa-undo"></i></button>
-                            <button onclick="rotateRight()" class="btn-secondary"><i class="fas fa-redo"></i></button>
-                            <button onclick="zoomIn()" class="btn-secondary"><i class="fas fa-search-plus"></i></button>
-                            <button onclick="zoomOut()" class="btn-secondary"><i class="fas fa-search-minus"></i></button>
-                            <button onclick="resetView()" class="btn-secondary"><i class="fas fa-compress"></i></button>
-                        </div>
-                    </div>
-
-                    <!-- Customization Panel -->
-                    <div class="glass-card p-6">
-                        <h3 class="text-xl font-bold mb-6">تخصيص التصميم</h3>
-
-                        <!-- Materials -->
-                        <div class="mb-6">
-                            <label class="block text-sm font-semibold mb-3 text-gray-400">الخامة</label>
-                            <div class="flex gap-3 flex-wrap">
-                                <button onclick="setMaterial('oak')" id="mat-oak" class="material-btn active">
-                                    <div class="material-swatch wood-oak"></div>
-                                    <span class="tooltip">بلوط</span>
-                                </button>
-                                <button onclick="setMaterial('walnut')" id="mat-walnut" class="material-btn">
-                                    <div class="material-swatch wood-walnut"></div>
-                                    <span class="tooltip">جوز أمريكي</span>
-                                </button>
-                                <button onclick="setMaterial('mdf')" id="mat-mdf" class="material-btn">
-                                    <div class="material-swatch wood-mdf"></div>
-                                    <span class="tooltip">MDF</span>
-                                </button>
-                                <button onclick="setMaterial('metal')" id="mat-metal" class="material-btn">
-                                    <div class="material-swatch metal-steel"></div>
-                                    <span class="tooltip">معدن</span>
-                                </button>
-                                <button onclick="setMaterial('leather')" id="mat-leather" class="material-btn">
-                                    <div class="material-swatch leather"></div>
-                                    <span class="tooltip">جلد</span>
-                                </button>
-                                <button onclick="setMaterial('velvet')" id="mat-velvet" class="material-btn">
-                                    <div class="material-swatch velvet"></div>
-                                    <span class="tooltip">مخمل</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Colors -->
-                        <div class="mb-6">
-                            <label class="block text-sm font-semibold mb-3 text-gray-400">اللون</label>
-                            <div class="flex gap-3 flex-wrap">
-                                <button onclick="setColor('#8B4513')" id="color-1" class="color-btn active" style="background: #8B4513;"></button>
-                                <button onclick="setColor('#D2691E')" id="color-2" class="color-btn" style="background: #D2691E;"></button>
-                                <button onclick="setColor('#F5DEB3')" id="color-3" class="color-btn" style="background: #F5DEB3;"></button>
-                                <button onclick="setColor('#2F4F4F')" id="color-4" class="color-btn" style="background: #2F4F4F;"></button>
-                                <button onclick="setColor('#708090')" id="color-5" class="color-btn" style="background: #708090;"></button>
-                                <button onclick="setColor('#000000')" id="color-6" class="color-btn" style="background: #000000;"></button>
-                                <button onclick="setColor('#FFFFFF')" id="color-7" class="color-btn" style="background: #FFFFFF; border: 2px solid rgba(255,255,255,0.3);"></button>
-                                <button onclick="setColor('#800080')" id="color-8" class="color-btn" style="background: #800080;"></button>
-                                <button onclick="setColor('#FF6347')" id="color-9" class="color-btn" style="background: #FF6347;"></button>
-                                <button onclick="setColor('#4169E1')" id="color-10" class="color-btn" style="background: #4169E1;"></button>
-                            </div>
-                        </div>
-
-                        <!-- Finish -->
-                        <div class="mb-6">
-                            <label class="block text-sm font-semibold mb-3 text-gray-400">الفينيش</label>
-                            <div class="flex gap-2 flex-wrap">
-                                <button onclick="setFinish('matte')" id="finish-matte" class="finish-btn active">مطفي</button>
-                                <button onclick="setFinish('glossy')" id="finish-glossy" class="finish-btn">لامع</button>
-                                <button onclick="setFinish('semi-gloss')" id="finish-semi" class="finish-btn">نصف لامع</button>
-                                <button onclick="setFinish('brush')" id="finish-brush" class="finish-btn">فرشاة</button>
-                                <button onclick="setFinish('antique')" id="finish-antique" class="finish-btn">أنتيك</button>
-                                <button onclick="setFinish('natural')" id="finish-natural" class="finish-btn">مشجر طبيعي</button>
-                            </div>
-                        </div>
-
-                        <!-- Dimensions -->
-                        <div class="mb-6">
-                            <label class="block text-sm font-semibold mb-3 text-gray-400">المقاسات (سم)</label>
-                            <div class="flex gap-4 items-center">
-                                <div class="text-center">
-                                    <label class="block text-xs text-gray-500 mb-1">الطول</label>
-                                    <input type="number" id="dim-length" class="dimension-input" value="200" onchange="updateDimensions()">
-                                </div>
-                                <div class="text-center">
-                                    <label class="block text-xs text-gray-500 mb-1">العرض</label>
-                                    <input type="number" id="dim-width" class="dimension-input" value="90" onchange="updateDimensions()">
-                                </div>
-                                <div class="text-center">
-                                    <label class="block text-xs text-gray-500 mb-1">الارتفاع</label>
-                                    <input type="number" id="dim-height" class="dimension-input" value="85" onchange="updateDimensions()">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="flex gap-3">
-                            <button onclick="saveDesign()" class="btn-primary flex-1">
-                                <i class="fas fa-save ml-2"></i>حفظ التصميم
-                            </button>
-                            <button onclick="exportDesign()" class="export-btn flex-1">
-                                <i class="fas fa-download ml-2"></i>تصدير HTML
-                            </button>
-                            <button onclick="shareDesign()" class="btn-secondary flex-1">
-                                <i class="fas fa-share-alt ml-2"></i>مشاركة
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Design Details -->
-                <div class="glass-card p-6 mb-10">
-                    <h3 class="text-xl font-bold mb-4">تفاصيل التصميم</h3>
-                    <div id="design-details" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Will be populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Comparison -->
-                <div class="glass-card p-6 mb-10">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-xl font-bold">مقارنة التصاميم</h3>
-                        <button onclick="addToComparison()" class="btn-secondary text-sm">
-                            <i class="fas fa-plus ml-2"></i>أضف للمقارنة
-                        </button>
-                    </div>
-                    <div id="comparison-container" class="comparison-grid">
-                        <!-- Will be populated by JS -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- History Section -->
-            <div id="history-section" class="mb-10">
-                <h2 class="text-3xl font-bold mb-8 text-center">المحفوظات</h2>
-                <div id="history-grid" class="comparison-grid">
-                    <!-- Will be populated by JS -->
-                </div>
-            </div>
+        <div class="glass-card">
+            <h3 class="text-sm font-bold mb-3 text-gray-400">🪑 الأثاث</h3>
+            <div id="furniture-list"></div>
         </div>
-    </section>
 
-    <!-- About Section -->
-    <section id="about" class="py-20 px-4">
-        <div class="max-w-5xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold mb-4">عن FurniSketch Pro</h2>
-                <p class="text-gray-400 text-lg">أداة تصميم الأثاث بالذكاء الاصطناعي - مجانية 100%</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="glass-card p-8 text-center">
-                    <div class="feature-icon mx-auto">
-                        <i class="fas fa-brain text-pink-500"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">ذكاء اصطناعي متقدم</h3>
-                    <p class="text-gray-400">يحلل الوصف والرسمات ويولد تصاميم واقعية بدقة عالية</p>
-                </div>
-                <div class="glass-card p-8 text-center">
-                    <div class="feature-icon mx-auto">
-                        <i class="fas fa-palette text-orange-400"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">تخصيص كامل</h3>
-                    <p class="text-gray-400">غيّر الخامات والألوان والفينيش والمقاسات بحرية تامة</p>
-                </div>
-                <div class="glass-card p-8 text-center">
-                    <div class="feature-icon mx-auto">
-                        <i class="fas fa-infinity text-blue-400"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">مجاني بدون حدود</h3>
-                    <p class="text-gray-400">صمم قد ما تحب بدون اشتراكات أو قيود</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="glass py-12 px-4 mt-20">
-        <div class="max-w-7xl mx-auto text-center">
-            <div class="flex items-center justify-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-xl font-bold">F</div>
-                <span class="text-xl font-bold gradient-text">FurniSketch Pro</span>
-            </div>
-            <p class="text-gray-400 mb-6">صمم بـ ❤️ لمصانع الأثاث في مصر والوطن العربي</p>
-            <div class="flex justify-center gap-6 text-gray-400">
-                <a href="#" class="hover:text-white transition"><i class="fab fa-github text-2xl"></i></a>
-                <a href="#" class="hover:text-white transition"><i class="fab fa-twitter text-2xl"></i></a>
-                <a href="#" class="hover:text-white transition"><i class="fab fa-linkedin text-2xl"></i></a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-2xl font-bold">إعدادات API</h3>
-                <button onclick="closeSettings()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <div class="mb-6">
-                <label class="block text-sm font-semibold mb-2 text-gray-400">OpenRouter API Key</label>
-                <input type="password" id="api-key-input" class="input-field" placeholder="sk-or-...">
-                <p class="text-xs text-gray-500 mt-2">احصل على مفتاح مجاني من <a href="https://openrouter.ai/keys" target="_blank" class="text-pink-400">openrouter.ai/keys</a></p>
-            </div>
-            <div class="mb-6">
-                <label class="block text-sm font-semibold mb-2 text-gray-400">الموديل المفضل</label>
-                <select id="model-select" class="input-field">
-                    <option value="meta-llama/llama-3.2-11b-vision-instruct:free">Llama 3.2 Vision (مجاني)</option>
-                    <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (مجاني)</option>
-                    <option value="mistralai/mistral-7b-instruct:free">Mistral 7B (مجاني)</option>
-                    <option value="nousresearch/hermes-3-llama-3.1-405b:free">Hermes 3 405B (مجاني)</option>
-                </select>
-            </div>
-            <button onclick="saveSettings()" class="btn-primary w-full">حفظ الإعدادات</button>
+        <div class="glass-card">
+            <h3 class="text-sm font-bold mb-3 text-gray-400">✨ وصف ذكي</h3>
+            <textarea id="desc-input" class="input-field text-sm mb-2" rows="2" placeholder="مثال: كنبة زاوية حديثة..."></textarea>
+            <button onclick="generateFromDesc()" class="btn-primary w-full text-sm">
+                <i class="fas fa-magic ml-2"></i>ولد التصميم
+            </button>
         </div>
     </div>
 
-    <!-- Toast -->
+    <!-- Left Sidebar -->
+    <div class="sidebar sidebar-left">
+        <div class="glass-card">
+            <h3 class="text-sm font-bold mb-3 text-gray-400">📋 القطعة المختارة</h3>
+            <div id="selected-info" class="text-sm text-gray-300">
+                <p>اختاري قطعة من القايمة</p>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="text-sm font-bold mb-3 text-gray-400">🪵 الخامة</h3>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="setMat('oak')" id="mat-oak" class="material-btn active" style="background: linear-gradient(135deg, #8B6914, #A0522D);"></button>
+                <button onclick="setMat('walnut')" id="mat-walnut" class="material-btn" style="background: linear-gradient(135deg, #5C4033, #3D2B1F);"></button>
+                <button onclick="setMat('mdf')" id="mat-mdf" class="material-btn" style="background: linear-gradient(135deg, #F5DEB3, #D2B48C);"></button>
+                <button onclick="setMat('metal')" id="mat-metal" class="material-btn" style="background: linear-gradient(135deg, #C0C0C0, #808080);"></button>
+                <button onclick="setMat('leather')" id="mat-leather" class="material-btn" style="background: linear-gradient(135deg, #8B4513, #CD853F);"></button>
+                <button onclick="setMat('fabric')" id="mat-fabric" class="material-btn" style="background: linear-gradient(135deg, #800080, #4B0082);"></button>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="text-sm font-bold mb-3 text-gray-400">🎨 اللون</h3>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="setCol('#8B4513')" id="col-1" class="color-btn active" style="background: #8B4513;"></button>
+                <button onclick="setCol('#D2691E')" id="col-2" class="color-btn" style="background: #D2691E;"></button>
+                <button onclick="setCol('#F5DEB3')" id="col-3" class="color-btn" style="background: #F5DEB3;"></button>
+                <button onclick="setCol('#2F4F4F')" id="col-4" class="color-btn" style="background: #2F4F4F;"></button>
+                <button onclick="setCol('#708090')" id="col-5" class="color-btn" style="background: #708090;"></button>
+                <button onclick="setCol('#000000')" id="col-6" class="color-btn" style="background: #000000;"></button>
+                <button onclick="setCol('#FFFFFF')" id="col-7" class="color-btn" style="background: #FFFFFF; border: 2px solid rgba(255,255,255,0.3);"></button>
+                <button onclick="setCol('#800080')" id="col-8" class="color-btn" style="background: #800080;"></button>
+                <button onclick="setCol('#FF6347')" id="col-9" class="color-btn" style="background: #FF6347;"></button>
+                <button onclick="setCol('#4169E1')" id="col-10" class="color-btn" style="background: #4169E1;"></button>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="text-sm font-bold mb-3 text-gray-400">📐 المقاسات</h3>
+            <div class="mb-2">
+                <label class="text-xs text-gray-500">الطول</label>
+                <input type="range" id="dim-l" class="dimension-slider" min="50" max="300" value="200" oninput="updateDim()">
+                <span id="val-l" class="text-xs text-gray-400">200</span>
+            </div>
+            <div class="mb-2">
+                <label class="text-xs text-gray-500">العرض</label>
+                <input type="range" id="dim-w" class="dimension-slider" min="50" max="200" value="90" oninput="updateDim()">
+                <span id="val-w" class="text-xs text-gray-400">90</span>
+            </div>
+            <div>
+                <label class="text-xs text-gray-500">الارتفاع</label>
+                <input type="range" id="dim-h" class="dimension-slider" min="30" max="250" value="85" oninput="updateDim()">
+                <span id="val-h" class="text-xs text-gray-400">85</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <button onclick="deleteSel()" class="btn-secondary text-sm">🗑️ حذف</button>
+            <button onclick="clearRoom()" class="btn-secondary text-sm">🧹 مسح الغرفة</button>
+            <button onclick="saveDesign()" class="btn-primary text-sm">💾 حفظ</button>
+            <button onclick="exportDesign()" class="btn-primary text-sm" style="background: linear-gradient(135deg, #00d2ff, #3a7bd5);">📥 تصدير</button>
+        </div>
+    </div>
+
     <div id="toast" class="toast"></div>
 
     <script>
+        let scene, camera, renderer, controls, raycaster, mouse;
+        let selectedObj = null, furnitureObjs = [];
+        let currentRoom = 'bedroom', currentMat = 'oak', currentCol = '#8B4513';
+        
+        const rooms = {
+            bedroom: { name: 'غرفة نوم', floor: 0x8B7355, wall: 0xF5F5DC, w: 12, d: 10, h: 3,
+                items: [{t:'bed',n:'سرير',x:0,z:-2,r:0},{t:'wardrobe',n:'دولاب',x:-4,z:-4,r:0},{t:'nightstand',n:'كومودينو',x:-2.5,z:-1,r:0},{t:'nightstand',n:'كومودينو',x:2.5,z:-1,r:0},{t:'dresser',n:'تسريحة',x:4,z:-4,r:0}] },
+            living: { name: 'صالون', floor: 0xA0522D, wall: 0xFFF8DC, w: 14, d: 12, h: 3,
+                items: [{t:'sofa',n:'كنبة',x:0,z:2,r:0},{t:'sofa',n:'كنبة زاوية',x:-3,z:2,r:1.57},{t:'table',n:'ترابيزة',x:0,z:0,r:0},{t:'tvstand',n:'تلفزيون',x:0,z:-4,r:0},{t:'bookshelf',n:'رفوف',x:5,z:-3,r:0}] },
+            kitchen: { name: 'مطبخ', floor: 0x696969, wall: 0xF0F8FF, w: 10, d: 10, h: 3,
+                items: [{t:'kitchen_cabinet',n:'وحدات',x:-3,z:-4,r:0},{t:'kitchen_counter',n:'رخامة',x:0,z:-4,r:0},{t:'fridge',n:'ثلاجة',x:3,z:-4,r:0},{t:'dining_table',n:'ترابيزة',x:0,z:2,r:0},{t:'chair',n:'كرسي',x:-1.5,z:2,r:0},{t:'chair',n:'كرسي',x:1.5,z:2,r:0}] },
+            dining: { name: 'سفرة', floor: 0x8B4513, wall: 0xFFFAF0, w: 10, d: 10, h: 3,
+                items: [{t:'dining_table',n:'ترابيزة',x:0,z:0,r:0},{t:'chair',n:'كرسي',x:-2,z:0,r:0},{t:'chair',n:'كرسي',x:2,z:0,r:3.14},{t:'chair',n:'كرسي',x:0,z:-2,r:1.57},{t:'chair',n:'كرسي',x:0,z:2,r:-1.57},{t:'sideboard',n:'بوفيه',x:4,z:-4,r:0}] },
+            office: { name: 'مكتب', floor: 0x556B2F, wall: 0xF5F5F0, w: 10, d: 10, h: 3,
+                items: [{t:'desk',n:'مكتب',x:0,z:-2,r:0},{t:'office_chair',n:'كرسي',x:0,z:0,r:3.14},{t:'bookshelf',n:'رفوف',x:-4,z:-4,r:0},{t:'cabinet',n:'خزانة',x:4,z:-4,r:0}] },
+            bathroom: { name: 'حمام', floor: 0x4682B4, wall: 0xF0F8FF, w: 6, d: 8, h: 3,
+                items: [{t:'bathtub',n:'بانيو',x:-2,z:-3,r:0},{t:'sink',n:'حوض',x:2,z:-3,r:0},{t:'toilet',n:'مرحاض',x:2,z:2,r:3.14},{t:'mirror',n:'مرآة',x:2,z:-3.5,r:0}] }
+        };
 
-        // Global State
-        let currentDesign = null;
-        let currentView = '2d';
-        let currentMaterial = 'oak';
-        let currentColor = '#8B4513';
-        let currentFinish = 'matte';
-        let currentDimensions = { length: 200, width: 90, height: 85 };
-        let designs = [];
-        let comparisonList = [];
-        let apiKey = localStorage.getItem('openrouter_api_key') || '';
-        let selectedModel = localStorage.getItem('selected_model') || 'meta-llama/llama-3.2-11b-vision-instruct:free';
-        let rotation = 0;
-        let zoom = 1;
+        const furnTypes = {
+            bedroom: [{t:'bed',n:'سرير',i:'🛏️'},{t:'wardrobe',n:'دولاب',i:'🚪'},{t:'nightstand',n:'كومودينو',i:'📦'},{t:'dresser',n:'تسريحة',i:'💄'},{t:'mirror',n:'مرآة',i:'🪞'}],
+            living: [{t:'sofa',n:'كنبة',i:'🛋️'},{t:'armchair',n:'كرسي',i:'🪑'},{t:'table',n:'ترابيزة',i:'🪑'},{t:'tvstand',n:'تلفزيون',i:'📺'},{t:'bookshelf',n:'رفوف',i:'📚'},{t:'rug',n:'سجادة',i:'🧶'}],
+            kitchen: [{t:'kitchen_cabinet',n:'وحدات',i:'🗄️'},{t:'kitchen_counter',n:'رخامة',i:'🪨'},{t:'fridge',n:'ثلاجة',i:'❄️'},{t:'stove',n:'بوتجاز',i:'🔥'},{t:'sink',n:'حوض',i:'💧'},{t:'dining_table',n:'ترابيزة',i:'🪑'},{t:'chair',n:'كرسي',i:'🪑'}],
+            dining: [{t:'dining_table',n:'ترابيزة',i:'🪑'},{t:'chair',n:'كرسي',i:'🪑'},{t:'sideboard',n:'بوفيه',i:'🗄️'},{t:'chandelier',n:'نجفة',i:'💡'}],
+            office: [{t:'desk',n:'مكتب',i:'📝'},{t:'office_chair',n:'كرسي',i:'💺'},{t:'bookshelf',n:'رفوف',i:'📚'},{t:'cabinet',n:'خزانة',i:'🗄️'},{t:'lamp',n:'مصباح',i:'💡'}],
+            bathroom: [{t:'bathtub',n:'بانيو',i:'🛁'},{t:'sink',n:'حوض',i:'💧'},{t:'toilet',n:'مرحاض',i:'🚽'},{t:'mirror',n:'مرآة',i:'🪞'},{t:'cabinet',n:'خزانة',i:'🗄️'}]
+        };
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDesigns();
-            setupDragDrop();
-            if (apiKey) {
-                document.getElementById('api-key-input').value = apiKey;
+        const mats = { oak:0x8B6914, walnut:0x5C4033, mdf:0xF5DEB3, metal:0xC0C0C0, leather:0x8B4513, fabric:0x800080 };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+            
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.set(8, 8, 8);
+            
+            renderer = new THREE.WebGLRenderer({antialias:true});
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.maxPolarAngle = Math.PI/2.2;
+            controls.minDistance = 3;
+            controls.maxDistance = 20;
+            
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+            dl.position.set(5, 10, 5); dl.castShadow = true;
+            scene.add(dl);
+            scene.add(new THREE.PointLight(0xffaa00, 0.3, 20));
+            
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            
+            loadRoom('bedroom');
+            updateList();
+            
+            renderer.domElement.addEventListener('click', onClick);
+            window.addEventListener('resize', onResize);
+            animate();
+            
+            setTimeout(() => document.getElementById('loading-screen').style.display='none', 1000);
+        }
+
+        function createRoom(key) {
+            const r = rooms[key];
+            const g = new THREE.Group();
+            g.name = 'room';
+            
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), new THREE.MeshStandardMaterial({color:r.floor, roughness:0.8}));
+            floor.rotation.x = -Math.PI/2; floor.receiveShadow = true;
+            g.add(floor);
+            
+            const wm = new THREE.MeshStandardMaterial({color:r.wall, roughness:0.9});
+            const bw = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.h), wm);
+            bw.position.set(0, r.h/2, -r.d/2); bw.receiveShadow = true; g.add(bw);
+            
+            const lw = new THREE.Mesh(new THREE.PlaneGeometry(r.d, r.h), wm);
+            lw.position.set(-r.w/2, r.h/2, 0); lw.rotation.y = Math.PI/2; lw.receiveShadow = true; g.add(lw);
+            
+            const rw = new THREE.Mesh(new THREE.PlaneGeometry(r.d, r.h), wm);
+            rw.position.set(r.w/2, r.h/2, 0); rw.rotation.y = -Math.PI/2; rw.receiveShadow = true; g.add(rw);
+            
+            scene.add(g);
+        }
+
+        function loadRoom(key) {
+            currentRoom = key;
+            furnitureObjs.forEach(o => scene.remove(o));
+            furnitureObjs = []; selectedObj = null;
+            
+            const old = scene.getObjectByName('room');
+            if(old) scene.remove(old);
+            
+            createRoom(key);
+            rooms[key].items.forEach(i => createFurn(i.t, i.n, i.x, i.z, i.r));
+            updateInfo();
+        }
+
+        function getMat() {
+            const c = new THREE.Color(currentCol);
+            let rough = 0.8;
+            return new THREE.MeshStandardMaterial({color:c, roughness:rough, metalness:0});
+        }
+
+        function createFurn(type, name, x, z, rot) {
+            const g = new THREE.Group();
+            g.userData = {isFurn:true, type, name, mat:currentMat, col:currentCol};
+            const m = getMat();
+            
+            switch(type) {
+                case 'bed':
+                    const mattress = new THREE.Mesh(new THREE.BoxGeometry(2, 0.4, 2.8), m);
+                    mattress.position.y = 0.5; mattress.castShadow = true; g.add(mattress);
+                    const headboard = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 0.2), m);
+                    headboard.position.set(0, 1, -1.4); headboard.castShadow = true; g.add(headboard);
+                    [[-0.9,-1.3],[0.9,-1.3],[-0.9,1.3],[0.9,1.3]].forEach(p => {
+                        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5), new THREE.MeshStandardMaterial({color:0x333333}));
+                        leg.position.set(p[0], 0.25, p[1]); g.add(leg);
+                    });
+                    break;
+                case 'sofa':
+                    const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.5, 0.9), m);
+                    base.position.y = 0.25; base.castShadow = true; g.add(base);
+                    const back = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, 0.2), m);
+                    back.position.set(0, 0.9, -0.35); back.castShadow = true; g.add(back);
+                    const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.9);
+                    const arm1 = new THREE.Mesh(armGeo, m); arm1.position.set(-1.1, 0.55, 0); arm1.castShadow = true; g.add(arm1);
+                    const arm2 = new THREE.Mesh(armGeo, m); arm2.position.set(1.1, 0.55, 0); arm2.castShadow = true; g.add(arm2);
+                    for(let i=-1; i<=1; i++) {
+                        const cushion = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.15, 0.5), m);
+                        cushion.position.set(i*0.7, 0.6, 0.1); g.add(cushion);
+                    }
+                    break;
+                case 'wardrobe':
+                    const wbody = new THREE.Mesh(new THREE.BoxGeometry(2, 2.2, 0.6), m);
+                    wbody.position.y = 1.1; wbody.castShadow = true; g.add(wbody);
+                    const doorGeo = new THREE.BoxGeometry(0.95, 2.1, 0.05);
+                    const d1 = new THREE.Mesh(doorGeo, m); d1.position.set(-0.48, 1.1, 0.32); g.add(d1);
+                    const d2 = new THREE.Mesh(doorGeo, m); d2.position.set(0.48, 1.1, 0.32); g.add(d2);
+                    const hGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.15);
+                    const hMat = new THREE.MeshStandardMaterial({color:0xC0C0C0, metalness:0.8});
+                    const h1 = new THREE.Mesh(hGeo, hMat); h1.position.set(-0.2, 1.1, 0.35); g.add(h1);
+                    const h2 = new THREE.Mesh(hGeo, hMat); h2.position.set(0.2, 1.1, 0.35); g.add(h2);
+                    break;
+                case 'table':
+                case 'dining_table':
+                    const top = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 0.8), m);
+                    top.position.y = 0.75; top.castShadow = true; g.add(top);
+                    const tlegGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.75);
+                    [[-0.65,-0.35],[0.65,-0.35],[-0.65,0.35],[0.65,0.35]].forEach(p => {
+                        const leg = new THREE.Mesh(tlegGeo, m); leg.position.set(p[0], 0.375, p[1]); leg.castShadow = true; g.add(leg);
+                    });
+                    break;
+                case 'chair':
+                case 'office_chair':
+                    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.5), m);
+                    seat.position.y = 0.45; seat.castShadow = true; g.add(seat);
+                    const cback = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.05), m);
+                    cback.position.set(0, 0.7, -0.225); cback.castShadow = true; g.add(cback);
+                    const clegGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.45);
+                    [[-0.2,-0.2],[0.2,-0.2],[-0.2,0.2],[0.2,0.2]].forEach(p => {
+                        const leg = new THREE.Mesh(clegGeo, m); leg.position.set(p[0], 0.225, p[1]); g.add(leg);
+                    });
+                    break;
+                case 'nightstand':
+                    const ns = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.4), m);
+                    ns.position.y = 0.3; ns.castShadow = true; g.add(ns);
+                    const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.15, 0.05), m);
+                    drawer.position.set(0, 0.45, 0.22); g.add(drawer);
+                    const nsh = new THREE.Mesh(new THREE.SphereGeometry(0.03), new THREE.MeshStandardMaterial({color:0xC0C0C0, metalness:0.8}));
+                    nsh.position.set(0, 0.45, 0.25); g.add(nsh);
+                    break;
+                case 'dresser':
+                    const dbody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.4), m);
+                    dbody.position.y = 0.4; dbody.castShadow = true; g.add(dbody);
+                    const dm = new THREE.Mesh(new THREE.BoxGeometry(1, 0.6, 0.05), new THREE.MeshStandardMaterial({color:0xE0E0E0, metalness:0.9, roughness:0.1}));
+                    dm.position.set(0, 1.2, -0.15); g.add(dm);
+                    break;
+                case 'tvstand':
+                    const tvbody = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 0.4), m);
+                    tvbody.position.y = 0.25; tvbody.castShadow = true; g.add(tvbody);
+                    const tv = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.05), new THREE.MeshStandardMaterial({color:0x111111, roughness:0.2}));
+                    tv.position.set(0, 1.1, 0); g.add(tv);
+                    const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.6), new THREE.MeshStandardMaterial({color:0x000033, emissive:0x000033, emissiveIntensity:0.2}));
+                    screen.position.set(0, 1.1, 0.03); g.add(screen);
+                    break;
+                case 'bookshelf':
+                    const bs = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.3), m);
+                    bs.position.y = 1; bs.castShadow = true; g.add(bs);
+                    for(let i=0; i<<4; i++) {
+                        const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.03, 0.28), m);
+                        shelf.position.set(0, 0.3+i*0.5, 0); g.add(shelf);
+                    }
+                    const bc = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff];
+                    for(let i=0; i<<8; i++) {
+                        const book = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.2), new THREE.MeshStandardMaterial({color:bc[i%5]}));
+                        book.position.set(-0.3+(i%4)*0.2, 0.55+Math.floor(i/4)*0.5, 0); g.add(book);
+                    }
+                    break;
+                case 'desk':
+                    const dtop = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 0.7), m);
+                    dtop.position.y = 0.75; dtop.castShadow = true; g.add(dtop);
+                    const dlegGeo = new THREE.BoxGeometry(0.05, 0.75, 0.05);
+                    [[-0.7,-0.3],[0.7,-0.3],[-0.7,0.3],[0.7,0.3]].forEach(p => {
+                        const leg = new THREE.Mesh(dlegGeo, m); leg.position.set(p[0], 0.375, p[1]); g.add(leg);
+                    });
+                    const ddrawer = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.3), m);
+                    ddrawer.position.set(0.4, 0.6, 0); g.add(ddrawer);
+                    break;
+                case 'kitchen_cabinet':
+                    const kc = new THREE.Mesh(new THREE.BoxGeometry(2, 0.9, 0.6), m);
+                    kc.position.y = 0.45; kc.castShadow = true; g.add(kc);
+                    const upper = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 0.3), m);
+                    upper.position.set(0, 1.8, -0.15); upper.castShadow = true; g.add(upper);
+                    for(let i=0; i<<3; i++) {
+                        const door = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.85, 0.05), m);
+                        door.position.set(-0.6+i*0.65, 0.45, 0.32); g.add(door);
+                    }
+                    break;
+                case 'kitchen_counter':
+                    const kbase = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.9, 0.6), m);
+                    kbase.position.y = 0.45; g.add(kbase);
+                    const counter = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.05, 0.65), new THREE.MeshStandardMaterial({color:0xF5F5F5, roughness:0.1}));
+                    counter.position.y = 0.925; counter.castShadow = true; g.add(counter);
+                    const sink = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.4), new THREE.MeshStandardMaterial({color:0xC0C0C0, metalness:0.8}));
+                    sink.position.set(0, 0.95, 0); g.add(sink);
+                    break;
+                case 'fridge':
+                    const fbody = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.8, 0.7), new THREE.MeshStandardMaterial({color:0xE0E0E0, metalness:0.6, roughness:0.3}));
+                    fbody.position.y = 0.9; fbody.castShadow = true; g.add(fbody);
+                    const fhandle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3), new THREE.MeshStandardMaterial({color:0xC0C0C0, metalness:0.8}));
+                    fhandle.position.set(0.3, 1.2, 0.36); g.add(fhandle);
+                    break;
+                case 'sideboard':
+                    const sb = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 0.45), m);
+                    sb.position.y = 0.45; sb.castShadow = true; g.add(sb);
+                    for(let i=0; i<<3; i++) {
+                        const sdrawer = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.05), m);
+                        sdrawer.position.set(-0.5+i*0.55, 0.3+(i%2)*0.35, 0.24); g.add(sdrawer);
+                    }
+                    break;
+                case 'bathtub':
+                    const tub = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 0.8), new THREE.MeshStandardMaterial({color:0xFFFFFF, roughness:0.1}));
+                    tub.position.y = 0.3; tub.castShadow = true; g.add(tub);
+                    const water = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.7), new THREE.MeshStandardMaterial({color:0x87CEEB, transparent:true, opacity:0.6}));
+                    water.position.y = 0.45; g.add(water);
+                    const faucet = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3), new THREE.MeshStandardMaterial({color:0xC0C0C0, metalness:0.8}));
+                    faucet.position.set(0, 0.6, -0.4); g.add(faucet);
+                    break;
+                case 'sink':
+                    const sbase = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.5), m);
+                    sbase.position.y = 0.4; g.add(sbase);
+                    const basin = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.4), new THREE.MeshStandardMaterial({color:0xFFFFFF, roughness:0.1}));
+                    basin.position.y = 0.85; g.add(basin);
+                    const sf = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2), new THREE.MeshStandardMaterial({color:0xC0C0C0, metalness:0.8}));
+                    sf.position.set(0, 1, -0.2); g.add(sf);
+                    const sm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.02), new THREE.MeshStandardMaterial({color:0xE0E0E0, metalness:0.9}));
+                    sm.position.set(0, 1.5, -0.26); g.add(sm);
+                    break;
+                case 'toilet':
+                    const tbowl = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.4), new THREE.MeshStandardMaterial({color:0xFFFFFF, roughness:0.1}));
+                    tbowl.position.y = 0.4; g.add(tbowl);
+                    const ttank = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.15), new THREE.MeshStandardMaterial({color:0xFFFFFF, roughness:0.1}));
+                    ttank.position.set(0, 0.8, -0.2); g.add(ttank);
+                    const tseat = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.05), new THREE.MeshStandardMaterial({color:0xFFFFFF, roughness:0.1}));
+                    tseat.position.y = 0.62; g.add(tseat);
+                    break;
+                case 'mirror':
+                    const mframe = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.05), m);
+                    mframe.position.y = 1.2; g.add(mframe);
+                    const mglass = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.1, 0.02), new THREE.MeshStandardMaterial({color:0xE0E0E0, metalness:0.9, roughness:0.1}));
+                    mglass.position.y = 1.2; g.add(mglass);
+                    break;
+                case 'rug':
+                    const rug = new THREE.Mesh(new THREE.BoxGeometry(2, 0.02, 1.5), new THREE.MeshStandardMaterial({color:0x8B0000, roughness:1}));
+                    rug.position.y = 0.01; rug.receiveShadow = true; g.add(rug);
+                    break;
+                case 'chandelier':
+                case 'lamp':
+                    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.5), new THREE.MeshStandardMaterial({color:0x333333}));
+                    cord.position.y = 2.5; g.add(cord);
+                    const shade = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.3, 8, 1, true), new THREE.MeshStandardMaterial({color:0xFFF8DC, transparent:true, opacity:0.8, side:THREE.DoubleSide}));
+                    shade.position.y = 2.2; g.add(shade);
+                    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshStandardMaterial({color:0xFFFFE0, emissive:0xFFFFE0, emissiveIntensity:0.5}));
+                    bulb.position.y = 2.1; g.add(bulb);
+                    const llight = new THREE.PointLight(0xFFFFE0, 0.5, 5);
+                    llight.position.y = 2; g.add(llight);
+                    break;
+                case 'stove':
+                    const stbody = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.6), new THREE.MeshStandardMaterial({color:0x333333, metalness:0.5}));
+                    stbody.position.y = 0.45; g.add(stbody);
+                    for(let i=0; i<<4; i++) {
+                        const burner = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.02), new THREE.MeshStandardMaterial({color:0x111111}));
+                        burner.position.set((i%2===0?-0.15:0.15), 0.91, (i<<2?-0.15:0.15)); g.add(burner);
+                    }
+                    const stdoor = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.02), new THREE.MeshStandardMaterial({color:0x111111, metalness:0.3}));
+                    stdoor.position.set(0, 0.4, 0.31); g.add(stdoor);
+                    break;
+                case 'cabinet':
+                    const cbody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), m);
+                    cbody.position.y = 0.6; cbody.castShadow = true; g.add(cbody);
+                    const cdrawer = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.35, 0.05), m);
+                    cdrawer.position.set(0, 0.9, 0.22); g.add(cdrawer);
+                    const cdoor = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.7, 0.05), m);
+                    cdoor.position.set(0, 0.4, 0.22); g.add(cdoor);
+                    break;
+                case 'armchair':
+                    const abase = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.8), m);
+                    abase.position.y = 0.25; abase.castShadow = true; g.add(abase);
+                    const aback = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.1), m);
+                    aback.position.set(0, 0.8, -0.35); aback.castShadow = true; g.add(aback);
+                    const aarmGeo = new THREE.BoxGeometry(0.1, 0.4, 0.8);
+                    const aarm1 = new THREE.Mesh(aarmGeo, m); aarm1.position.set(-0.4, 0.7, 0); g.add(aarm1);
+                    const aarm2 = new THREE.Mesh(aarmGeo, m); aarm2.position.set(0.4, 0.7, 0); g.add(aarm2);
+                    break;
+                default:
+                    const def = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), m);
+                    def.position.y = 0.5; def.castShadow = true; g.add(def);
             }
-            document.getElementById('model-select').value = selectedModel;
-        });
-
-        // Tab Switching
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
-
-            document.getElementById('panel-text').classList.add('hidden');
-            document.getElementById('panel-sketch').classList.add('hidden');
-            document.getElementById('panel-manual').classList.add('hidden');
-            document.getElementById('panel-' + tab).classList.remove('hidden');
+            
+            g.position.set(x, 0, z);
+            g.rotation.y = rot;
+            g.castShadow = true;
+            scene.add(g);
+            furnitureObjs.push(g);
+            return g;
         }
 
-        // Generate from Text
-        async function generateFromText() {
-            const desc = document.getElementById('furniture-desc').value.trim();
-            if (!desc) {
-                showToast('من فضلك اكتب وصف القطعة الأول');
-                return;
-            }
-
-            if (!apiKey) {
-                showToast('محتاجة تضيفي API Key في الإعدادات الأول');
-                showSettings();
-                return;
-            }
-
-            showLoading(true);
-            updateProgress(10, 'جاري تحليل الوصف...');
-
-            try {
-                const type = document.getElementById('furniture-type').value;
-                const style = document.getElementById('furniture-style').value;
-                const budget = document.getElementById('budget-range').value;
-
-                const prompt = `You are an expert furniture designer. Create a detailed SVG code for a ${type} furniture piece.
-
-Description: ${desc}
-Style: ${style}
-Budget: ${budget}
-
-Generate a complete, valid SVG code (width="400" height="400") that represents this furniture piece. The SVG should:
-- Be detailed and professional looking
-- Use gradients for realistic materials
-- Include proper shadows and highlights
-- Be suitable for a furniture factory
-- Use the color ${currentColor} as the primary color
-- Include wood grain texture if wood material
-
-Return ONLY the SVG code, nothing else. Start with <svg and end with </svg>.`;
-
-                updateProgress(30, 'بيتصل بالذكاء الاصطناعي...');
-
-                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.href,
-                        'X-Title': 'FurniSketch Pro'
-                    },
-                    body: JSON.stringify({
-                        model: selectedModel,
-                        messages: [{ role: 'user', content: prompt }],
-                        max_tokens: 4000
-                    })
-                });
-
-                updateProgress(70, 'بيتلقى التصميم...');
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error?.message || 'API Error');
-                }
-
-                const data = await response.json();
-                const svgContent = data.choices[0].message.content;
-
-                // Extract SVG from response
-                const svgMatch = svgContent.match(/<svg[\s\S]*?<\/svg>/);
-                const svgCode = svgMatch ? svgMatch[0] : generateFallbackSVG(type, desc);
-
-                updateProgress(90, 'بيتجهز للعرض...');
-
-                currentDesign = {
-                    id: Date.now(),
-                    type: type,
-                    description: desc,
-                    style: style,
-                    svg: svgCode,
-                    material: currentMaterial,
-                    color: currentColor,
-                    finish: currentFinish,
-                    dimensions: { ...currentDimensions },
-                    timestamp: new Date().toLocaleString('ar-EG'),
-                    view: '2d'
-                };
-
-                updateProgress(100, 'جاهز!');
-                setTimeout(() => {
-                    showLoading(false);
-                    showResults();
-                    renderPreview();
-                    showToast('تم إنشاء التصميم بنجاح! 🎉');
-                }, 500);
-
-            } catch (error) {
-                showLoading(false);
-                console.error('Error:', error);
-                showToast('خطأ: ' + error.message);
-
-                // Fallback to local generation
-                const type = document.getElementById('furniture-type').value;
-                currentDesign = {
-                    id: Date.now(),
-                    type: type,
-                    description: desc,
-                    style: document.getElementById('furniture-style').value,
-                    svg: generateFallbackSVG(type, desc),
-                    material: currentMaterial,
-                    color: currentColor,
-                    finish: currentFinish,
-                    dimensions: { ...currentDimensions },
-                    timestamp: new Date().toLocaleString('ar-EG'),
-                    view: '2d'
-                };
-                showResults();
-                renderPreview();
-                showToast('تم إنشاء تصميم محلي (الـ API مش متاح دلوقتي)');
-            }
-        }
-
-        // Generate from Sketch
-        async function generateFromSketch() {
-            const sketchImg = document.getElementById('sketch-img');
-            if (!sketchImg.src) {
-                showToast('ارفعي رسمة الأول');
-                return;
-            }
-
-            if (!apiKey) {
-                showToast('محتاجة تضيفي API Key في الإعدادات الأول');
-                showSettings();
-                return;
-            }
-
-            showLoading(true);
-            updateProgress(10, 'بيتحلل الرسمة...');
-
-            try {
-                // Convert image to base64
-                const canvas = document.createElement('canvas');
-                canvas.width = sketchImg.naturalWidth;
-                canvas.height = sketchImg.naturalHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(sketchImg, 0, 0);
-                const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
-
-                updateProgress(30, 'بيتصل بالذكاء الاصطناعي...');
-
-                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.href,
-                        'X-Title': 'FurniSketch Pro'
-                    },
-                    body: JSON.stringify({
-                        model: selectedModel.includes('vision') ? selectedModel : 'meta-llama/llama-3.2-11b-vision-instruct:free',
-                        messages: [{
-                            role: 'user',
-                            content: [
-                                { type: 'text', text: 'This is a hand-drawn sketch of furniture. Convert it to a professional, detailed SVG code (width="400" height="400"). Return ONLY the SVG code, nothing else.' },
-                                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
-                            ]
-                        }],
-                        max_tokens: 4000
-                    })
-                });
-
-                updateProgress(70, 'بيتلقى التصميم...');
-
-                if (!response.ok) {
-                    throw new Error('API Error');
-                }
-
-                const data = await response.json();
-                const svgContent = data.choices[0].message.content;
-                const svgMatch = svgContent.match(/<svg[\s\S]*?<\/svg>/);
-                const svgCode = svgMatch ? svgMatch[0] : generateFallbackSVG('sofa', 'من رسمة اليد');
-
-                updateProgress(100, 'جاهز!');
-
-                currentDesign = {
-                    id: Date.now(),
-                    type: 'custom',
-                    description: 'محول من رسمة اليد',
-                    style: 'custom',
-                    svg: svgCode,
-                    material: currentMaterial,
-                    color: currentColor,
-                    finish: currentFinish,
-                    dimensions: { ...currentDimensions },
-                    timestamp: new Date().toLocaleString('ar-EG'),
-                    view: '2d'
-                };
-
-                setTimeout(() => {
-                    showLoading(false);
-                    showResults();
-                    renderPreview();
-                    showToast('تم تحويل الرسمة بنجاح! 🎨');
-                }, 500);
-
-            } catch (error) {
-                showLoading(false);
-                showToast('خطأ في تحليل الرسمة، هنستخدم تصميم افتراضي');
-                currentDesign = {
-                    id: Date.now(),
-                    type: 'custom',
-                    description: 'محول من رسمة اليد',
-                    style: 'custom',
-                    svg: generateFallbackSVG('sofa', 'من رسمة اليد'),
-                    material: currentMaterial,
-                    color: currentColor,
-                    finish: currentFinish,
-                    dimensions: { ...currentDimensions },
-                    timestamp: new Date().toLocaleString('ar-EG'),
-                    view: '2d'
-                };
-                showResults();
-                renderPreview();
-            }
-        }
-
-        // Fallback SVG Generator (works without API)
-        function generateFallbackSVG(type, desc) {
-            const colors = {
-                oak: '#8B6914', walnut: '#5C4033', mdf: '#F5DEB3',
-                metal: '#C0C0C0', leather: '#8B4513', velvet: '#800080'
-            };
-            const mainColor = colors[currentMaterial] || currentColor;
-
-            const templates = {
-                sofa: `<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:${mainColor};stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:${adjustColor(mainColor, -30)};stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="shadow">
-                            <feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    <rect x="50" y="200" width="300" height="120" rx="20" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="50" y="150" width="300" height="80" rx="15" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="40" y="160" width="30" height="100" rx="10" fill="url(#woodGrad)"/>
-                    <rect x="330" y="160" width="30" height="100" rx="10" fill="url(#woodGrad)"/>
-                    <rect x="70" y="320" width="20" height="60" rx="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="310" y="320" width="20" height="60" rx="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="150" y="320" width="20" height="60" rx="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="230" y="320" width="20" height="60" rx="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <text x="200" y="380" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="14">كنبة مودرن - ${currentDimensions.length}×${currentDimensions.width}سم</text>
-                </svg>`,
-
-                chair: `<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:${mainColor};stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:${adjustColor(mainColor, -30)};stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="shadow">
-                            <feDropShadow dx="0" dy="8" stdDeviation="8" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    <rect x="120" y="180" width="160" height="15" rx="5" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="130" y="120" width="140" height="70" rx="10" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="110" y="130" width="25" height="80" rx="8" fill="url(#woodGrad)"/>
-                    <rect x="265" y="130" width="25" height="80" rx="8" fill="url(#woodGrad)"/>
-                    <rect x="125" y="195" width="15" height="100" rx="3" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="260" y="195" width="15" height="100" rx="3" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="170" y="195" width="15" height="90" rx="3" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="215" y="195" width="15" height="90" rx="3" fill="${adjustColor(mainColor, -40)}"/>
-                    <text x="200" y="380" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="14">كرسي - ${currentDimensions.height}سم</text>
-                </svg>`,
-
-                table: `<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:${mainColor};stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:${adjustColor(mainColor, -30)};stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="shadow">
-                            <feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    <ellipse cx="200" cy="160" rx="160" ry="40" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <ellipse cx="200" cy="155" rx="150" ry="35" fill="${adjustColor(mainColor, 20)}" opacity="0.3"/>
-                    <rect x="100" y="180" width="25" height="150" rx="5" fill="url(#woodGrad)"/>
-                    <rect x="275" y="180" width="25" height="150" rx="5" fill="url(#woodGrad)"/>
-                    <rect x="80" y="320" width="65" height="20" rx="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="255" y="320" width="65" height="20" rx="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <text x="200" y="380" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="14">ترابيزة - ${currentDimensions.length}×${currentDimensions.width}سم</text>
-                </svg>`,
-
-                bed: `<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:${mainColor};stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:${adjustColor(mainColor, -30)};stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="shadow">
-                            <feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    <rect x="50" y="250" width="300" height="80" rx="10" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="50" y="200" width="300" height="60" rx="8" fill="#F5F5DC"/>
-                    <rect x="50" y="150" width="300" height="60" rx="8" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="40" y="160" width="20" height="100" rx="5" fill="url(#woodGrad)"/>
-                    <rect x="340" y="160" width="20" height="100" rx="5" fill="url(#woodGrad)"/>
-                    <rect x="60" y="330" width="25" height="50" rx="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="315" y="330" width="25" height="50" rx="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <text x="200" y="380" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="14">سرير - ${currentDimensions.length}×${currentDimensions.width}سم</text>
-                </svg>`,
-
-                cabinet: `<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:${mainColor};stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:${adjustColor(mainColor, -30)};stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="shadow">
-                            <feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    <rect x="80" y="50" width="240" height="300" rx="10" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="90" y="60" width="105" height="130" rx="5" fill="${adjustColor(mainColor, 10)}" stroke="${adjustColor(mainColor, -20)}" stroke-width="2"/>
-                    <rect x="205" y="60" width="105" height="130" rx="5" fill="${adjustColor(mainColor, 10)}" stroke="${adjustColor(mainColor, -20)}" stroke-width="2"/>
-                    <rect x="90" y="200" width="105" height="130" rx="5" fill="${adjustColor(mainColor, 10)}" stroke="${adjustColor(mainColor, -20)}" stroke-width="2"/>
-                    <rect x="205" y="200" width="105" height="130" rx="5" fill="${adjustColor(mainColor, 10)}" stroke="${adjustColor(mainColor, -20)}" stroke-width="2"/>
-                    <circle cx="185" cy="125" r="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <circle cx="215" cy="125" r="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <circle cx="185" cy="265" r="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <circle cx="215" cy="265" r="5" fill="${adjustColor(mainColor, -40)}"/>
-                    <text x="200" y="380" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="14">دولاب - ${currentDimensions.height}×${currentDimensions.width}سم</text>
-                </svg>`,
-
-                shelf: `<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:${mainColor};stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:${adjustColor(mainColor, -30)};stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="shadow">
-                            <feDropShadow dx="0" dy="8" stdDeviation="8" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    <rect x="100" y="50" width="200" height="300" rx="5" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="100" y="100" width="200" height="10" fill="${adjustColor(mainColor, -20)}"/>
-                    <rect x="100" y="170" width="200" height="10" fill="${adjustColor(mainColor, -20)}"/>
-                    <rect x="100" y="240" width="200" height="10" fill="${adjustColor(mainColor, -20)}"/>
-                    <rect x="100" y="310" width="200" height="10" fill="${adjustColor(mainColor, -20)}"/>
-                    <text x="200" y="380" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="14">رفوف - ${currentDimensions.height}×${currentDimensions.width}سم</text>
-                </svg>`,
-
-                desk: `<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:${mainColor};stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:${adjustColor(mainColor, -30)};stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="shadow">
-                            <feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    <rect x="50" y="150" width="300" height="20" rx="5" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="50" y="130" width="300" height="25" rx="3" fill="url(#woodGrad)"/>
-                    <rect x="70" y="170" width="20" height="180" rx="3" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="310" y="170" width="20" height="180" rx="3" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="150" y="170" width="20" height="160" rx="3" fill="${adjustColor(mainColor, -40)}"/>
-                    <rect x="230" y="170" width="20" height="160" rx="3" fill="${adjustColor(mainColor, -40)}"/>
-                    <text x="200" y="380" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="14">مكتب - ${currentDimensions.length}×${currentDimensions.width}سم</text>
-                </svg>`,
-
-                other: `<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="woodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:${mainColor};stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:${adjustColor(mainColor, -30)};stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="shadow">
-                            <feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    <rect x="100" y="100" width="200" height="200" rx="20" fill="url(#woodGrad)" filter="url(#shadow)"/>
-                    <rect x="120" y="120" width="160" height="160" rx="15" fill="${adjustColor(mainColor, 20)}" opacity="0.3"/>
-                    <text x="200" y="340" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="14">قطعة أثاث مخصصة</text>
-                </svg>`
-            };
-
-            return templates[type] || templates.other;
-        }
-
-        // Color adjustment helper
-        function adjustColor(color, amount) {
-            const num = parseInt(color.replace('#', ''), 16);
-            const r = Math.min(255, Math.max(0, (num >> 16) + amount));
-            const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
-            const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
-            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
-        }
-
-        // Load Template
-        function loadTemplate(type) {
-            currentDesign = {
-                id: Date.now(),
-                type: type,
-                description: 'تصميم يدوي',
-                style: 'custom',
-                svg: generateFallbackSVG(type, 'manual'),
-                material: currentMaterial,
-                color: currentColor,
-                finish: currentFinish,
-                dimensions: { ...currentDimensions },
-                timestamp: new Date().toLocaleString('ar-EG'),
-                view: '2d'
-            };
-            showResults();
-            renderPreview();
-            showToast('تم تحميل القالب! عدل عليه زي ما تحب');
-        }
-
-        // Sketch Upload
-        function handleSketchUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('الصورة كبيرة جداً، الحد الأقصى 5MB');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById('sketch-img').src = e.target.result;
-                document.getElementById('sketch-preview').classList.remove('hidden');
-                document.getElementById('sketch-btn').disabled = false;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function clearSketch() {
-            document.getElementById('sketch-img').src = '';
-            document.getElementById('sketch-preview').classList.add('hidden');
-            document.getElementById('sketch-btn').disabled = true;
-            document.getElementById('sketch-input').value = '';
-        }
-
-        function setupDragDrop() {
-            const dropzone = document.getElementById('sketch-dropzone');
-
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('dragover');
-            });
-
-            dropzone.addEventListener('dragleave', () => {
-                dropzone.classList.remove('dragover');
-            });
-
-            dropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('dragover');
-
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const event = { target: { files: files } };
-                    handleSketchUpload(event);
-                }
-            });
-        }
-
-        // UI Helpers
-        function showLoading(show) {
-            document.getElementById('ai-loading').classList.toggle('hidden', !show);
-        }
-
-        function updateProgress(percent, text) {
-            document.getElementById('progress-fill').style.width = percent + '%';
-            document.getElementById('progress-text').textContent = text;
-        }
-
-        function showResults() {
-            document.getElementById('results-section').classList.remove('hidden');
-            document.getElementById('results-section').classList.add('fade-in');
-            updateDesignDetails();
-        }
-
-        function renderPreview() {
-            if (!currentDesign) return;
-
-            const preview = document.getElementById('svg-preview');
-            let svg = currentDesign.svg;
-
-            // Apply finish effects
-            if (currentFinish === 'glossy') {
-                svg = svg.replace(/<svg/, '<svg style="filter: brightness(1.2) contrast(1.1);"');
-            } else if (currentFinish === 'matte') {
-                svg = svg.replace(/<svg/, '<svg style="filter: brightness(0.9);"');
-            } else if (currentFinish === 'antique') {
-                svg = svg.replace(/<svg/, '<svg style="filter: sepia(0.3) contrast(0.9);"');
-            }
-
-            // Apply rotation and zoom
-            svg = svg.replace(/<svg/, `<svg style="transform: rotate(${rotation}deg) scale(${zoom}); transition: transform 0.5s ease;"`);
-
-            preview.innerHTML = svg;
-        }
-
-        function setView(view) {
-            currentView = view;
-            document.querySelectorAll('[id^="view-"]').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('view-' + view).classList.add('active');
-
-            if (view === 'room') {
-                document.getElementById('preview-area').classList.add('room-preview');
+        function onClick(event) {
+            mouse.x = (event.clientX/window.innerWidth)*2-1;
+            mouse.y = -(event.clientY/window.innerHeight)*2+1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(furnitureObjs, true);
+            if(intersects.length > 0) {
+                let obj = intersects[0].object;
+                while(obj.parent && !obj.userData.isFurn) obj = obj.parent;
+                if(obj.userData.isFurn) selectObj(obj);
             } else {
-                document.getElementById('preview-area').classList.remove('room-preview');
-            }
-
-            renderPreview();
-        }
-
-        function rotateLeft() {
-            rotation -= 15;
-            renderPreview();
-        }
-
-        function rotateRight() {
-            rotation += 15;
-            renderPreview();
-        }
-
-        function zoomIn() {
-            zoom = Math.min(zoom + 0.2, 3);
-            renderPreview();
-        }
-
-        function zoomOut() {
-            zoom = Math.max(zoom - 0.2, 0.5);
-            renderPreview();
-        }
-
-        function resetView() {
-            rotation = 0;
-            zoom = 1;
-            renderPreview();
-        }
-
-        // Customization
-        function setMaterial(material) {
-            currentMaterial = material;
-            document.querySelectorAll('.material-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('mat-' + material).classList.add('active');
-            if (currentDesign) {
-                currentDesign.material = material;
-                currentDesign.svg = generateFallbackSVG(currentDesign.type, currentDesign.description);
-                renderPreview();
-                updateDesignDetails();
+                deselectObj();
             }
         }
 
-        function setColor(color) {
-            currentColor = color;
-            document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            if (currentDesign) {
-                currentDesign.color = color;
-                currentDesign.svg = generateFallbackSVG(currentDesign.type, currentDesign.description);
-                renderPreview();
-                updateDesignDetails();
+        function selectObj(obj) {
+            deselectObj();
+            selectedObj = obj;
+            obj.traverse(child => {
+                if(child.isMesh && child.material.emissive) {
+                    child.userData.origEmissive = child.material.emissive.clone();
+                    child.material.emissive.setHex(0x444444);
+                }
+            });
+            updateInfo();
+        }
+
+        function deselectObj() {
+            if(selectedObj) {
+                selectedObj.traverse(child => {
+                    if(child.isMesh && child.userData.origEmissive) {
+                        child.material.emissive.copy(child.userData.origEmissive);
+                    }
+                });
+                selectedObj = null;
+                updateInfo();
             }
         }
 
-        function setFinish(finish) {
-            currentFinish = finish;
-            document.querySelectorAll('.finish-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('finish-' + finish).classList.add('active');
-            if (currentDesign) {
-                currentDesign.finish = finish;
-                renderPreview();
-                updateDesignDetails();
+        function updateInfo() {
+            const info = document.getElementById('selected-info');
+            if(selectedObj) {
+                info.innerHTML = `<p><strong>${selectedObj.userData.name}</strong></p><p>الخامة: ${selectedObj.userData.mat}</p><p>اللون: <span style="display:inline-block;width:20px;height:20px;background:${selectedObj.userData.col};border-radius:3px;vertical-align:middle;"></span></p>`;
+            } else {
+                info.innerHTML = '<p>اختاري قطعة من القايمة أو اضغطي على أي قطعة</p>';
             }
         }
 
-        function updateDimensions() {
-            currentDimensions.length = parseInt(document.getElementById('dim-length').value) || 200;
-            currentDimensions.width = parseInt(document.getElementById('dim-width').value) || 90;
-            currentDimensions.height = parseInt(document.getElementById('dim-height').value) || 85;
-            if (currentDesign) {
-                currentDesign.dimensions = { ...currentDimensions };
-                currentDesign.svg = generateFallbackSVG(currentDesign.type, currentDesign.description);
-                renderPreview();
-                updateDesignDetails();
-            }
-        }
-
-        function updateDesignDetails() {
-            if (!currentDesign) return;
-
-            const materials = { oak: 'بلوط', walnut: 'جوز أمريكي', mdf: 'MDF', metal: 'معدن', leather: 'جلد', velvet: 'مخمل' };
-            const finishes = { matte: 'مطفي', glossy: 'لامع', 'semi-gloss': 'نصف لامع', brush: 'فرشاة', antique: 'أنتيك', natural: 'مشجر طبيعي' };
-
-            document.getElementById('design-details').innerHTML = `
-                <div class="result-card">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">النوع</span>
-                        <span class="font-semibold">${currentDesign.type}</span>
-                    </div>
-                </div>
-                <div class="result-card">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">النمط</span>
-                        <span class="font-semibold">${currentDesign.style}</span>
-                    </div>
-                </div>
-                <div class="result-card">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">الخامة</span>
-                        <span class="font-semibold">${materials[currentDesign.material]}</span>
-                    </div>
-                </div>
-                <div class="result-card">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">اللون</span>
-                        <div class="w-6 h-6 rounded-full" style="background: ${currentDesign.color}"></div>
-                    </div>
-                </div>
-                <div class="result-card">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">الفينيش</span>
-                        <span class="font-semibold">${finishes[currentDesign.finish]}</span>
-                    </div>
-                </div>
-                <div class="result-card">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">المقاسات</span>
-                        <span class="font-semibold">${currentDesign.dimensions.length}×${currentDesign.dimensions.width}×${currentDesign.dimensions.height} سم</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Save & Export
-        function saveDesign() {
-            if (!currentDesign) return;
-
-            designs.push({ ...currentDesign });
-            localStorage.setItem('furnisketch_designs', JSON.stringify(designs));
-            loadDesigns();
-            showToast('تم حفظ التصميم! ✅');
-        }
-
-        function loadDesigns() {
-            const saved = localStorage.getItem('furnisketch_designs');
-            if (saved) {
-                designs = JSON.parse(saved);
-            }
-
-            const historyGrid = document.getElementById('history-grid');
-            if (designs.length === 0) {
-                historyGrid.innerHTML = '<p class="text-gray-400 text-center col-span-full">لا يوجد تصاميم محفوظة بعد</p>';
-                return;
-            }
-
-            historyGrid.innerHTML = designs.slice(-6).reverse().map(d => `
-                <div class="glass-card p-4 cursor-pointer hover:scale-105 transition" onclick="loadSavedDesign(${d.id})">
-                    <div class="mb-2">${d.svg}</div>
-                    <div class="text-sm font-semibold">${d.type} - ${d.timestamp}</div>
-                    <div class="text-xs text-gray-400">${d.dimensions.length}×${d.dimensions.width} سم</div>
+        function updateList() {
+            const list = document.getElementById('furniture-list');
+            const items = furnTypes[currentRoom] || [];
+            list.innerHTML = items.map(item => `
+                <div class="furniture-item" onclick="addFurn('${item.t}', '${item.n}')">
+                    <span class="text-xl">${item.i}</span>
+                    <span>${item.n}</span>
                 </div>
             `).join('');
         }
 
-        function loadSavedDesign(id) {
-            const design = designs.find(d => d.id === id);
-            if (design) {
-                currentDesign = { ...design };
-                currentMaterial = design.material;
-                currentColor = design.color;
-                currentFinish = design.finish;
-                currentDimensions = { ...design.dimensions };
+        function addFurn(type, name) {
+            const r = rooms[currentRoom];
+            const x = (Math.random()-0.5)*r.w*0.6;
+            const z = (Math.random()-0.5)*r.d*0.6;
+            const obj = createFurn(type, name, x, z, 0);
+            selectObj(obj);
+            showToast(`تمت إضافة ${name}!`);
+        }
 
-                document.getElementById('dim-length').value = currentDimensions.length;
-                document.getElementById('dim-width').value = currentDimensions.width;
-                document.getElementById('dim-height').value = currentDimensions.height;
+        function setRoom(room) {
+            document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('room-'+room).classList.add('active');
+            loadRoom(room);
+            updateList();
+            showToast(rooms[room].name);
+        }
 
-                showResults();
-                renderPreview();
-                showToast('تم تحميل التصميم المحفوظ');
+        function setMat(mat) {
+            currentMat = mat;
+            document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('mat-'+mat).classList.add('active');
+            if(selectedObj) {
+                applyMat(selectedObj);
+                selectedObj.userData.mat = mat;
+                updateInfo();
             }
+        }
+
+        function setCol(col) {
+            currentCol = col;
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            if(selectedObj) {
+                applyMat(selectedObj);
+                selectedObj.userData.col = col;
+                updateInfo();
+            }
+        }
+
+        function applyMat(obj) {
+            const m = getMat();
+            obj.traverse(child => {
+                if(child.isMesh && !child.userData.isAccent) {
+                    child.material = m.clone();
+                }
+            });
+        }
+
+        function updateDim() {
+            const l = document.getElementById('dim-l').value;
+            const w = document.getElementById('dim-w').value;
+            const h = document.getElementById('dim-h').value;
+            document.getElementById('val-l').textContent = l;
+            document.getElementById('val-w').textContent = w;
+            document.getElementById('val-h').textContent = h;
+            if(selectedObj) {
+                selectedObj.scale.set(l/200, h/85, w/90);
+            }
+        }
+
+        function deleteSel() {
+            if(selectedObj) {
+                scene.remove(selectedObj);
+                furnitureObjs = furnitureObjs.filter(o => o !== selectedObj);
+                selectedObj = null;
+                updateInfo();
+                showToast('تم الحذف!');
+            }
+        }
+
+        function clearRoom() {
+            furnitureObjs.forEach(o => scene.remove(o));
+            furnitureObjs = [];
+            selectedObj = null;
+            updateInfo();
+            showToast('تم مسح الغرفة!');
+        }
+
+        function saveDesign() {
+            const design = {room:currentRoom, items:furnitureObjs.map(o => ({t:o.userData.type, n:o.userData.name, x:o.position.x, z:o.position.z, r:o.rotation.y, m:o.userData.mat, c:o.userData.col}))};
+            localStorage.setItem('fs_design_'+Date.now(), JSON.stringify(design));
+            showToast('تم الحفظ! 💾');
         }
 
         function exportDesign() {
-            if (!currentDesign) return;
-
-            const html = `<!DOCTYPE html>
-<html dir="rtl">
-<head><meta charset="UTF-8"><title>${currentDesign.type} - FurniSketch</title></head>
-<body style="background: #1a1a2e; color: white; text-align: center; padding: 50px; font-family: Cairo;">
-<h1>تصميم ${currentDesign.type}</h1>
-<div style="margin: 30px auto;">${currentDesign.svg}</div>
-<p>الخامة: ${currentDesign.material} | اللون: ${currentDesign.color} | الفينيش: ${currentDesign.finish}</p>
-<p>المقاسات: ${currentDesign.dimensions.length}×${currentDesign.dimensions.width}×${currentDesign.dimensions.height} سم</p>
-<p>تم التصميم بواسطة FurniSketch Pro</p>
-</body></html>`;
-
-            const blob = new Blob([html], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `furnisketch-${currentDesign.type}-${Date.now()}.html`;
-            a.click();
-            URL.revokeObjectURL(url);
-
-            showToast('تم تصدير التصميم! 📥');
+            let report = `تقرير تصميم ${rooms[currentRoom].name}\\n`;
+            report += `التاريخ: ${new Date().toLocaleString('ar-EG')}\\n\\n`;
+            report += `القطع:\\n`;
+            furnitureObjs.forEach((o, i) => {
+                report += `${i+1}. ${o.userData.name} - ${o.userData.mat} - ${o.userData.col}\\n`;
+            });
+            alert(report);
         }
 
-        function shareDesign() {
-            if (!currentDesign) return;
-
-            const shareData = {
-                title: 'FurniSketch Pro - تصميم أثاث',
-                text: `شوف التصميم ده: ${currentDesign.type} من ${currentDesign.material}`,
-                url: window.location.href
-            };
-
-            if (navigator.share) {
-                navigator.share(shareData);
+        function generateFromDesc() {
+            const desc = document.getElementById('desc-input').value.trim().toLowerCase();
+            if(!desc) { showToast('اكتبي وصف!'); return; }
+            const keywords = {'سرير':'bed','bed':'bed','كنبة':'sofa','sofa':'sofa','دولاب':'wardrobe','ترابيزة':'table','table':'table','كرسي':'chair','chair':'chair','مكتب':'desk','desk':'desk','رف':'bookshelf','ثلاجة':'fridge','fridge':'fridge','بانيو':'bathtub','bathtub':'bathtub','حوض':'sink','sink':'sink','مرحاض':'toilet','toilet':'toilet'};
+            let matched = null;
+            for(const [k,v] of Object.entries(keywords)) {
+                if(desc.includes(k)) { matched = v; break; }
+            }
+            if(matched) {
+                const r = rooms[currentRoom];
+                const obj = createFurn(matched, matched, (Math.random()-0.5)*r.w*0.4, (Math.random()-0.5)*r.d*0.4, 0);
+                selectObj(obj);
+                showToast('تم الإنشاء! ✨');
             } else {
-                navigator.clipboard.writeText(window.location.href);
-                showToast('تم نسخ اللينك! 📋');
+                showToast('جربي: سرير، كنبة، دولاب، ترابيزة...');
             }
+            document.getElementById('desc-input').value = '';
         }
 
-        function addToComparison() {
-            if (!currentDesign) return;
-
-            if (comparisonList.length >= 4) {
-                showToast('ممكن تقارن 4 تصاميم بس في نفس الوقت');
-                return;
-            }
-
-            comparisonList.push({ ...currentDesign });
-            updateComparison();
-            showToast('تمت الإضافة للمقارنة! 📊');
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
         }
 
-        function updateComparison() {
-            const container = document.getElementById('comparison-container');
-            if (comparisonList.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 text-center">لا يوجد تصاميم للمقارنة</p>';
-                return;
-            }
-
-            container.innerHTML = comparisonList.map((d, i) => `
-                <div class="glass-card p-4">
-                    <div class="mb-2">${d.svg}</div>
-                    <div class="text-sm font-semibold">${d.type}</div>
-                    <div class="text-xs text-gray-400">${d.material} | ${d.dimensions.length}×${d.dimensions.width} سم</div>
-                    <button onclick="removeFromComparison(${i})" class="text-red-400 text-xs mt-2 hover:text-red-300">إزالة</button>
-                </div>
-            `).join('');
+        function onResize() {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        function removeFromComparison(index) {
-            comparisonList.splice(index, 1);
-            updateComparison();
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
         }
 
-        // Settings
-        function showSettings() {
-            document.getElementById('settings-modal').classList.add('active');
-        }
-
-        function closeSettings() {
-            document.getElementById('settings-modal').classList.remove('active');
-        }
-
-        function saveSettings() {
-            apiKey = document.getElementById('api-key-input').value.trim();
-            selectedModel = document.getElementById('model-select').value;
-
-            localStorage.setItem('openrouter_api_key', apiKey);
-            localStorage.setItem('selected_model', selectedModel);
-
-            closeSettings();
-            showToast('تم حفظ الإعدادات! ✅');
-        }
-
-        // Toast
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // Navigation
-        function scrollToDesign() {
-            document.getElementById('design').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function showDemo() {
-            showToast('العرض التوضيحي قريباً! 🎬');
-        }
-
-        // Close modal on outside click
-        document.getElementById('settings-modal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) closeSettings();
-        });
+        window.onload = init;
     </script>
 </body>
 </html>
